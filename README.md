@@ -44,6 +44,7 @@ services:
             MYSQL_ROOT_PASSWORD: "testroot"
             MYSQL_USER: "test"
             MYSQL_PASSWORD: "docker"
+            MYSQL_DATABASE: "exampledb"
         ports: #need to be able to connect to the db as well
             - "9000:3306"
 ```
