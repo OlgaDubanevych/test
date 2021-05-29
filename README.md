@@ -48,7 +48,7 @@ services:
             - "9000:3306"
 ```
 
-4. The MySQL environment settings will be needed for `config.js` in order for it to connect, be sure to update the file with the above user and password (test/docker).
+4. The MySQL environment settings will be needed for `config.js` in order for it to connect, be sure to update the file with the above user and password (test/docker). The hostname will be `db`.
 4. Build the docker compose environment: `docker-compose build` and then run: `docker-compose up`
 4. Using a tool like `MySQL Workbench`, connect to the DB container, and run the SQL provided above
 5. Try interacting with your application
