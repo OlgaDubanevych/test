@@ -1,230 +1,162 @@
-var express = require('express')
-var app = express()
+const express = require('express');
+const router = express.Router();
 
-// SHOW LIST OF USERS
-app.get('/', function(req, res, next) {
-	req.getConnection(function(error, conn) {
-		conn.query('SELECT * FROM users ORDER BY id DESC',function(err, rows, fields) {
-			//if(err) throw err
-			if (err) {
-				req.flash('error', err)
-				res.render('user/list', {
-					title: 'User List', 
-					data: ''
-				})
-			} else {
-				// render to views/user/list.ejs template file
-				res.render('user/list', {
-					title: 'User List', 
-					data: rows
-				})
-			}
-		})
-	})
-})
+let userItems = [];
 
-// SHOW ADD USER FORM
-app.get('/add', function(req, res, next){	
-	// render to views/user/add.ejs
-	res.render('user/add', {
-		title: 'Add New User',
-		name: '',
-		age: '',
-		email: ''		
-	})
-})
+function validateUser(user) {
+  const requiredFields = [
+    'user_id',
+    'first_name',
+    'last_name',
+    'gender',
+    'date_of_birth',
+    'address',
+    'city',
+    'postal_code',
+    'province',
+    'phone_number',
+    'email',
+    'country_of_origin',
+    'occupation',
+    'interests',
+    'few_words_about_me',
+    'joined_on_date'
+  ];
+  const missingFields = [];
 
-// ADD NEW USER POST ACTION
-app.post('/add', function(req, res, next){	
-	req.assert('name', 'Name is required').notEmpty()           //Validate name
-	req.assert('age', 'Age is required').notEmpty()             //Validate age
-    req.assert('email', 'A valid email is required').isEmail()  //Validate email
-
-    var errors = req.validationErrors()
-    
-    if( !errors ) {   //No errors were found.  Passed Validation!
-		
-		/********************************************
-		 * Express-validator module
-		 
-		req.body.comment = 'a <span>comment</span>';
-		req.body.username = '   a user    ';
-
-		req.sanitize('comment').escape(); // returns 'a &lt;span&gt;comment&lt;/span&gt;'
-		req.sanitize('username').trim(); // returns 'a user'
-		********************************************/
-		var user = {
-			name: req.sanitize('name').escape().trim(),
-			age: req.sanitize('age').escape().trim(),
-			email: req.sanitize('email').escape().trim()
-		}
-		
-		req.getConnection(function(error, conn) {
-			conn.query('INSERT INTO users SET ?', user, function(err, result) {
-				//if(err) throw err
-				if (err) {
-					req.flash('error', err)
-					
-					// render to views/user/add.ejs
-					res.render('user/add', {
-						title: 'Add New User',
-						name: user.name,
-						age: user.age,
-						email: user.email					
-					})
-				} else {				
-					req.flash('success', 'Data added successfully!')
-					
-					// render to views/user/add.ejs
-					res.render('user/add', {
-						title: 'Add New User',
-						name: '',
-						age: '',
-						email: ''					
-					})
-				}
-			})
-		})
-	}
-	else {   //Display errors to user
-		var error_msg = ''
-		errors.forEach(function(error) {
-			error_msg += error.msg + '<br>'
-		})				
-		req.flash('error', error_msg)		
-		
-		/**
-		 * Using req.body.name 
-		 * because req.param('name') is deprecated
-		 */ 
-        res.render('user/add', { 
-            title: 'Add New User',
-            name: req.body.name,
-            age: req.body.age,
-            email: req.body.email
-        })
+  requiredFields.forEach(field => {
+    if (!user.hasOwnProperty(field) || user[field].trim() === '') {
+      missingFields.push(field);
     }
-})
+  });
 
-// SHOW EDIT USER FORM
-app.get('/edit/(:id)', function(req, res, next){
-	req.getConnection(function(error, conn) {
-		conn.query('SELECT * FROM users WHERE id = ?', [req.params.id], function(err, rows, fields) {
-			if(err) throw err
-			
-			// if user not found
-			if (rows.length <= 0) {
-				req.flash('error', 'User not found with id = ' + req.params.id)
-				res.redirect('/users')
-			}
-			else { // if user found
-				// render to views/user/edit.ejs template file
-				res.render('user/edit', {
-					title: 'Edit User', 
-					//data: rows[0],
-					id: rows[0].id,
-					name: rows[0].name,
-					age: rows[0].age,
-					email: rows[0].email					
-				})
-			}			
-		})
-	})
-})
+  return missingFields;
+}
 
-// EDIT USER POST ACTION
-app.put('/edit/(:id)', function(req, res, next) {
-	req.assert('name', 'Name is required').notEmpty()           //Validate name
-	req.assert('age', 'Age is required').notEmpty()             //Validate age
-    req.assert('email', 'A valid email is required').isEmail()  //Validate email
+router.get('/users', (req, res) => {
+  return res.json(userItems);
+});
 
-    var errors = req.validationErrors()
-    
-    if( !errors ) {   //No errors were found.  Passed Validation!
-		
-		/********************************************
-		 * Express-validator module
-		 
-		req.body.comment = 'a <span>comment</span>';
-		req.body.username = '   a user    ';
+router.get('/users/:user_id', (req, res) => {
+  const userId = parseInt(req.params.user_id);
+  const user = userItems.find((item) => item.user_id === userId);
 
-		req.sanitize('comment').escape(); // returns 'a &lt;span&gt;comment&lt;/span&gt;'
-		req.sanitize('username').trim(); // returns 'a user'
-		********************************************/
-		var user = {
-			name: req.sanitize('name').escape().trim(),
-			age: req.sanitize('age').escape().trim(),
-			email: req.sanitize('email').escape().trim()
-		}
-		
-		req.getConnection(function(error, conn) {
-			conn.query('UPDATE users SET ? WHERE id = ' + req.params.id, user, function(err, result) {
-				//if(err) throw err
-				if (err) {
-					req.flash('error', err)
-					
-					// render to views/user/add.ejs
-					res.render('user/edit', {
-						title: 'Edit User',
-						id: req.params.id,
-						name: req.body.name,
-						age: req.body.age,
-						email: req.body.email
-					})
-				} else {
-					req.flash('success', 'Data updated successfully!')
-					
-					// render to views/user/add.ejs
-					res.render('user/edit', {
-						title: 'Edit User',
-						id: req.params.id,
-						name: req.body.name,
-						age: req.body.age,
-						email: req.body.email
-					})
-				}
-			})
-		})
-	}
-	else {   //Display errors to user
-		var error_msg = ''
-		errors.forEach(function(error) {
-			error_msg += error.msg + '<br>'
-		})
-		req.flash('error', error_msg)
-		
-		/**
-		 * Using req.body.name 
-		 * because req.param('name') is deprecated
-		 */ 
-        res.render('user/edit', { 
-            title: 'Edit User',            
-			id: req.params.id, 
-			name: req.body.name,
-			age: req.body.age,
-			email: req.body.email
-        })
-    }
-})
+  if (user) {
+    return res.json(user);
+  } else {
+    return res.status(404).json({ message: 'User not found' });
+  }
+});
 
-// DELETE USER
-app.delete('/delete/(:id)', function(req, res, next) {
-	var user = { id: req.params.id }
-	
-	req.getConnection(function(error, conn) {
-		conn.query('DELETE FROM users WHERE id = ' + req.params.id, user, function(err, result) {
-			//if(err) throw err
-			if (err) {
-				req.flash('error', err)
-				// redirect to users list page
-				res.redirect('/users')
-			} else {
-				req.flash('success', 'User deleted successfully! id = ' + req.params.id)
-				// redirect to users list page
-				res.redirect('/users')
-			}
-		})
-	})
-})
+router.post('/users', (req, res) => {
+  const user = req.body;
+  const missingFields = validateUser(user);
 
-module.exports = app
+  if (missingFields.length > 0) {
+    return res.status(400).json({ error: 'Missing fields', missingFields });
+  }
+
+  userItems.push(user);
+
+  return res.status(201).json(user);
+});
+
+router.put('/users/:user_id', (req, res) => {
+  const itemId = parseInt(req.params.id);
+  const updatedUser = req.body;
+
+  const index = userItems.findIndex((item) => item.user_id === itemId);
+
+  if (index !== -1) {
+    userItems[index] = { ...userItems[index], ...updatedUser };
+    return res.status(200).json(userItems[index]);
+  } else {
+    return res.status(404).json({ error: 'User not found' });
+  }
+});
+
+router.patch('/users/:user_id', (req, res) => {
+  const itemId = parseInt(req.params.user_id);
+  const updatedFields = req.body;
+
+  const index = userItems.findIndex((item) => item.user_id === itemId);
+
+  if (index !== -1) {
+    userItems[index] = { ...userItems[index], ...updatedFields };
+    return res.status(200).json(userItems[index]);
+  } else {
+    return res.status(404).json({ error: 'User not found' });
+  }
+});
+
+router.delete('/users/:user_id', (req, res) => {
+  const itemId = parseInt(req.params.user_id);
+  const index = userItems.findIndex((item) => item.user_id === itemId);
+
+  if (index !== -1) {
+    userItems.splice(index, 1);
+    return res.status(204).send();
+  } else {
+    return res.status(404).json({ error: 'User not found' });
+  }
+});
+
+router.get('/add-user', (req, res) => {
+  const form = `
+    <form action="/api/users" method="POST">
+      <label for="user_id">user_id:</label>
+      <input type="text" id="user_id" name="user_id" required>
+
+      <label for="first_name">First Name:</label>
+      <input type="text" id="first_name" name="first_name" required>
+
+      <label for="last_name">Last Name:</label>
+      <input type="text" id="last_name" name="last_name" required>
+
+      <label for="gender">Gender:</label>
+      <input type="text" id="gender" name="gender" required>
+
+      <label for="date_of_birth">Date of Birth:</label>
+      <input type="text" id="date_of_birth" name="date_of_birth" required>
+
+      <label for="address">Address:</label>
+      <input type="text" id="address" name="address" required>
+
+      <label for="city">City:</label>
+      <input type="text" id="city" name="city" required>
+
+      <label for="postal_code">Postal Code:</label>
+      <input type="text" id="postal_code" name="postal_code" required>
+
+      <label for="province">Province:</label>
+      <input type="text" id="province" name="province" required>
+
+      <label for="phone_number">Phone Number:</label>
+      <input type="text" id="phone_number" name="phone_number" required>
+
+      <label for="email">Email:</label>
+      <input type="text" id="email" name="email" required>
+
+      <label for="country_of_origin">Country of Origin:</label>
+      <input type="text" id="country_of_origin" name="country_of_origin" required>
+
+      <label for="occupation">Occupation:</label>
+      <input type="text" id="occupation" name="occupation" required>
+
+      <label for="interests">Interests:</label>
+      <input type="text" id="interests" name="interests" required>
+
+      <label for="few_words_about_me">Few Words About Me:</label>
+      <input type="text" id="few_words_about_me" name="few_words_about_me" required>
+
+      <label for="joined_on_date">Joined On Date:</label>
+      <input type="text" id="joined_on_date" name="joined_on_date" required>
+
+      <button type="submit">Add User</button>
+    </form>
+  `;
+
+  return res.send(form);
+});
+
+module.exports = router;

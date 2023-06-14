@@ -1,10 +1,10 @@
 var config = {
 	database: {
-		host:	  'cloudsql', 	// database host
-		user: 	  'docker', 		// your database username
-		password: 'test', 		// your database password
+		host:	  'db', 	// database host
+		user: 	  'test', 		// your database username
+		password: 'docker', 		// your database password
 		port: 	  3306, 		// default MySQL port
-		db: 	  'example' 		// your database name
+		db: 	  'exampledb' 		// your database name
 	},
 	server: {
 		host: '127.0.0.1',
